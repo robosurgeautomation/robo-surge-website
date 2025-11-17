@@ -31,7 +31,7 @@ const Index = () => {
     setSubmitStatus(null);
 
     try {
-      const response = await fetch("http://localhost:3001/api/submit-demo", {
+      const response = await fetch("/api/submit-demo", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
