@@ -14,21 +14,30 @@ export default async function handler(req: any, res: any) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { name = '', email = '', phone = '', company = '', service = '', message = '' } = body || {};
 
-    const credsJson = process.env.GOOGLE_CREDENTIALS_JSON;
     const spreadsheetId = process.env.SPREADSHEET_ID;
 
-    console.log('ENV check - SPREADSHEET_ID:', !!spreadsheetId, 'GOOGLE_CREDENTIALS_JSON:', !!credsJson);
+    // Accept either raw JSON in GOOGLE_CREDENTIALS_JSON or base64 in GOOGLE_CREDENTIALS_B64
+    const credsJson = process.env.GOOGLE_CREDENTIALS_JSON;
+    const credsB64 = process.env.GOOGLE_CREDENTIALS_B64;
 
-    if (!credsJson || !spreadsheetId) {
-      console.error('Missing config: SPREADSHEET_ID or GOOGLE_CREDENTIALS_JSON not set');
+    console.log('ENV check - SPREADSHEET_ID:', !!spreadsheetId, 'GOOGLE_CREDENTIALS_JSON:', !!credsJson, 'GOOGLE_CREDENTIALS_B64:', !!credsB64);
+
+    if (!spreadsheetId || (!credsJson && !credsB64)) {
+      console.error('Missing config: SPREADSHEET_ID or GOOGLE_CREDENTIALS not set');
       return res.status(500).json({ success: false, error: 'Server not configured - missing env vars' });
     }
 
-    let credentials;
+    let credentials: any;
     try {
-      credentials = JSON.parse(credsJson);
+      if (credsJson) {
+        credentials = JSON.parse(credsJson);
+      } else {
+        // decode base64
+        const decoded = Buffer.from(credsB64 as string, 'base64').toString('utf8');
+        credentials = JSON.parse(decoded);
+      }
     } catch (parseErr) {
-      console.error('Failed to parse GOOGLE_CREDENTIALS_JSON:', parseErr);
+      console.error('Failed to parse Google credentials:', parseErr);
       return res.status(500).json({ success: false, error: 'Invalid credentials format' });
     }
 
